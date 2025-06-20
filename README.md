@@ -11,8 +11,3 @@ We call a line a diagonal if it has two endpoints $p_1=(x_1,y_1)$ and $p_2 =(x_2
 right if $x_1 < x_2$ and $y_2< y_1$. This is best illustrated by the following diagram, where the blue line a left diagonal and the red line a right diagonal.
 
 <img src="/images/diagonals.png" width=56% height=56%>
-
-
-```math
-SE = \frac{\sigma}{\sqrt{n}}
-```
