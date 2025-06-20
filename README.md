@@ -16,7 +16,8 @@ a diagonal a right diagonal if $x_1 < x_2$ and $y_2< y_1$. This is best illustra
 
 #### Design
 Upon each placement of stones we keep track of which diagonal the stone is placed onto and the number of stones on that diagonal. When evaluating a position, we skip those diagonals which contain no stones. This speeds ups our evaluation function by some constant factor when compared to
-an naive implementation that goes through every single possible diagonals. This gain in efficiency decays the longer the game is played and finally is the same as an naive implementation when all diagonals have a stone.
+an naive implementation that goes through every single possible diagonals. This gain in efficiency decays the longer the game is played and finally is the same as an naive implementation when all diagonals have a stone. It suffices to store this information in two arrays, one storing the information
+of the left diagonalas and the other the right diagonals. Notice that there is only $2\times board size -1$ left/right diagonals.
 
 #### Labelling scheme
 ##### Left diagonals
