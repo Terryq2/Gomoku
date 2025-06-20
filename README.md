@@ -3,6 +3,7 @@
 
 ## Board
 For an $n\times n$ board we index the top left corner as $(0,0)$. A larger $x$ coordinate brings us more right relative to the origin. A larger $y$ coordinate brings us more down relative to the origin. This scheme is illustrated on the following $15\times15$ board.
+
 <img src="/images/board.png" width=50% height=50%>
 
 ## Heuristics
