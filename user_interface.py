@@ -8,7 +8,7 @@ from board import Board
 from stones import Stone
 from board import Move
 from timer import Timer
-from pprint import pprint
+import cProfile
 from bot import Bot
 
 
@@ -183,16 +183,12 @@ class UI:
     
     def draw_candidates(self, canvas:tk.Canvas):
         for candidate in self.board.candidates_manager.candidates_added_white:
-            print(candidate)
-            # if self.board.candidates_manager.is_a_candidate(candidate.point, Stone.BLACK):
-            #     self.draw_candidate_stone(canvas, candidate, '#9370DB')
-            #     continue
             self.draw_candidate_stone(canvas, candidate)
 
         for candidate in self.board.candidates_manager.candidates_added_black:
-            # if self.board.candidates_manager.is_a_candidate(candidate.point, Stone.WHITE):
-            #     self.draw_candidate_stone(canvas, candidate, '#9370DB')
-            #     continue
+            if self.has_oval_at(canvas, candidate.point.x, candidate.point.y):
+                self.draw_candidate_stone(canvas, candidate, specify_color='#FFBF00')
+                continue
             self.draw_candidate_stone(canvas, candidate)
 
     def trigger_ai_turn(self):
@@ -215,14 +211,9 @@ class UI:
         self.canvas.bind("<Button-1>", self.on_click)
 
     def on_key_m(self, event):
-        # cProfile.runctx('self.board.minimax_iterative(2, self.current_player)', globals(), locals())
-        # cProfile.runctx('self.board.minimax_iterative(3)', globals(), locals())
-        # cProfile.runctx('self.board.minimax(3, self.current_player)', globals(), locals())
-        # with Timer('Minimax recursive'):
-        #     print(self.board.minimax(0, 2, self.current_player))
-        # print('current_player', self.board.current_player)
+        # cProfile.runctx('self.bot.minimax.run(3, self.board)', globals(), locals())
         with Timer('Minimax iterative'):
-            print(self.bot.minimax_iterative(max_depth=3, board=self.board))
+            print(self.bot.minimax.run(max_depth=3, board=self.board))
 
     def on_key_l(self, event):
         with Timer('Cancel'):

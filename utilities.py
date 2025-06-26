@@ -56,7 +56,7 @@ class CandidateManager:
         self.candidates_added_white = []
         self.candidates_added_black = []
     
-    def deep_copy_candidates(self, candidates: list[Candidate]) -> list[Candidate]:
+    def deep_copy(self, candidates: list[Candidate]) -> list[Candidate]:
         """Returns a deepcopy of a candidate list"""
         return [Candidate(c.point.x, c.point.y, c.player) for c in candidates]
 

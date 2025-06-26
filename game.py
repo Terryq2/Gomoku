@@ -10,15 +10,4 @@ class Gomoku:
         
     
 if __name__ == "__main__":
-    game = Gomoku(19)
-    # board: Board = Board(19)
-    # board.place(2,2)
-
-    # for candidate in board.candidates_manager.candidates_added_white:
-    #     print(candidate)
-
-    # board.place(3,3)
-    # board.cancel()
-
-    # for candidate in board.candidates_manager.candidates_added_white:
-    #     print(candidate)
+    game = Gomoku(15)
