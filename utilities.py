@@ -15,7 +15,7 @@ class Frame:
                  player: Stone,
                  candidate_index: int,
                  candidates: list[Candidate],
-                 current_candidate: Candidate):
+                 current_candidate: Candidate, alpha: int = None, beta: int = None):
         self.depth = depth
         self.player = player
         self.candidate_index = candidate_index
@@ -23,6 +23,8 @@ class Frame:
         self.best_score = float('-inf') if player == Stone.WHITE else float('inf')
         self.current_candidate = current_candidate
         self.best_candidate = None
+        self.alpha = alpha if alpha is not None else float('-inf')
+        self.beta = beta if beta is not None else float('inf')
 
 class Move:
     "A class simulating a move on a Gomoku board"

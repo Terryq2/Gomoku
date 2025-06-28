@@ -10,6 +10,10 @@ from board import Move
 from timer import Timer
 import cProfile
 from bot import Bot
+import threading
+import time
+import pstats
+import io
 
 
 def distance(point_one: tuple[float, float], point_two: tuple[float, float]):
@@ -135,7 +139,10 @@ class UI:
             else:
                 self.root.destroy()
             return
-            
+        
+        if self.bot != None:
+            self.canvas.unbind("<Button-1>")
+            threading.Thread(target=self.trigger_ai_turn, daemon=True).start()
             
         
     def redraw_board(self, canvas: tk.Canvas) -> None:
@@ -186,19 +193,35 @@ class UI:
             self.draw_candidate_stone(canvas, candidate)
 
         for candidate in self.board.candidates_manager.candidates_added_black:
-            if self.has_oval_at(canvas, candidate.point.x, candidate.point.y):
-                self.draw_candidate_stone(canvas, candidate, specify_color='#FFBF00')
-                continue
             self.draw_candidate_stone(canvas, candidate)
-
+    
     def trigger_ai_turn(self):
-        (score, move) = self.bot.minimax_iterative(1, self.board)
-        if move:
-            self.board.place(move.point.x, move.point.y)
+        start = time.time()
+        pr = cProfile.Profile()
+        pr.enable()
+
+        
+
+        (score, ai_move) = self.bot.minimax.run(max_depth=3, board=self.board)
+
+
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+        ps.print_stats(20)  # 显示前 20 个函数
+        print(s.getvalue())
+
+        elapsed = time.time() - start
+        if elapsed < 1.0:
+            time.sleep(1.0 - elapsed)
+
+        def place_ai_move():
+            self.board.place(ai_move.point.x, ai_move.point.y)
             self.draw_stones(self.canvas, self.board.move_stack[-1])
-            if self.board.check_win(move.point.x, move.point.y, self.board.move_stack[-1].player):
+
+            if self.board.check_win(ai_move.point.x, ai_move.point.y, self.board.move_stack[-1].player):
                 winner = "Black" if self.board.move_stack[-1].player == Stone.BLACK else "White"
-                answer = messagebox.askyesno("Game Over", f"{winner} Won！\nDo you want to play again?")
+                answer = messagebox.askyesno("Game Over", f"{winner} Won!\nDo you want to play again?")
                 self.canvas.unbind("<Button-1>")
                 if answer:
                     self.board.reset()
@@ -207,27 +230,20 @@ class UI:
                     self.canvas.bind("<Button-1>", self.on_click)
                 else:
                     self.root.destroy()
-                return
-        self.canvas.bind("<Button-1>", self.on_click)
+            else:
+                self.canvas.bind("<Button-1>", self.on_click)
+        self.root.after(0, place_ai_move)
 
-    def on_key_m(self, event):
-        # cProfile.runctx('self.bot.minimax.run(3, self.board)', globals(), locals())
-        with Timer('Minimax iterative'):
+    def on_key_m(self):
+        with Timer('Minimax'):
             print(self.bot.minimax.run(max_depth=3, board=self.board))
 
-    def on_key_l(self, event):
+    def on_key_l(self):
         with Timer('Cancel'):
-            for candidate in self.board.candidates_manager.candidates_added_white:
-                print(candidate)
-            
             self.board.cancel()
-            print('\n')
-            for candidate in self.board.candidates_manager.candidates_added_white:
-                print(candidate)
-
             self.redraw_board(self.canvas)
 
-    def on_key_p(self, event):
+    def on_key_p(self):
         self.draw_candidates(self.canvas)
 
     
