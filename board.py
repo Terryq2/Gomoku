@@ -107,14 +107,16 @@ class Board:
         
         # Add candidates
         candidates_added = []
-        for direction in self.directions:
-            if not self.in_bounds(x + direction[0], y+ direction[1]):
-                continue
-
-            candidate_point = Point(x + direction[0], y + direction[1])
-            if self.board[candidate_point.y][candidate_point.x] == Stone.EMPTY and not self.candidates_manager.is_a_candidate(candidate_point, self.current_player):
-                candidates_added.append(candidate_point)
-                self.candidates_manager.add_candidate_for_player(candidate_point, self.current_player)
+        for i in range(1, 3):
+            for direction in self.directions:
+                if not self.in_bounds(x + direction[0] * i, y+ direction[1] * i):
+                    continue
+                
+                
+                candidate_point = Point(x + direction[0] * i, y + direction[1] * i)
+                if self.board[candidate_point.y][candidate_point.x] == Stone.EMPTY and not self.candidates_manager.is_a_candidate(candidate_point, self.current_player):
+                    candidates_added.append(candidate_point)
+                    self.candidates_manager.add_candidate_for_player(candidate_point, self.current_player)
                 
 
         # Removing the candidate at the position which the stone is placed
@@ -234,19 +236,15 @@ class Board:
             if self.hash_for_board in self.transposition_table:
                 return self.transposition_table[self.hash_for_board]
             
-            white_score = self.evaluate_horizontals(Stone.WHITE) #evaluation for the player that just placed a stone\
-            white_score += self.evaluate_verticals(Stone.WHITE) #evaluation for the player that just placed a stone
-            white_score += self.evaluate_diagonals(Stone.WHITE)
+            white_score = (self.evaluate_horizontals(Stone.WHITE) 
+                        + self.evaluate_verticals(Stone.WHITE) 
+                        + self.evaluate_diagonals(Stone.WHITE))
 
 
-            black_score = self.evaluate_horizontals(Stone.BLACK) #evaluation for the player that just placed a stone\
-            black_score += self.evaluate_verticals(Stone.BLACK) #evaluation for the player that just placed a stone
-            black_score += self.evaluate_diagonals(Stone.BLACK)
-        
-        # print('Eval', white_score - black_score)
-        # print("cols", self.num_of_elements_in_cols)
-        # print("rows", self.num_of_elements_in_rows)
-        # print("left diags", self.num_of_elements_in_left_diagonals)
+            black_score = (self.evaluate_horizontals(Stone.BLACK)
+                        + self.evaluate_verticals(Stone.BLACK)
+                        + self.evaluate_diagonals(Stone.BLACK))
+     
             self.transposition_table[self.hash_for_board] = white_score - black_score
         return self.transposition_table[self.hash_for_board]
            
@@ -330,14 +328,14 @@ class Board:
         score += self.evaluate_right_diagonals(player)
         return score
     
-    def score_line(self, line: list[Stone], player: Stone) -> int:
+    def score_line(self, line: list[Stone], player: Stone) -> float:
         """Scores a line"""
         pattern_score = {
-            "11111": 100000,       # five in a row (win)
+            "11111": float('inf'),       # five in a row (win)
             "011110": 10000,       # open four
             "01110": 1000,        # open three
-            "01111X": 500,
-            "X11110": 500,
+            "01111X": 5000,
+            "X11110": 5000,
             "0111X": 300,
             "X1110": 300,
             "0110": 200,         # open two
@@ -351,9 +349,10 @@ class Board:
         
         for pattern, value in pattern_score.items():
             count = line_str.count(pattern)
+            if pattern == '11111' and count:
+                return float('inf')
             if count:
                 score += count * value
-
         return score
 
 if __name__ == '__main__':

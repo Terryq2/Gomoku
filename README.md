@@ -21,7 +21,7 @@ of the left diagonalas and the other the right diagonals. Notice that there is o
 
 #### Labelling scheme
 ##### Left diagonals
-Since there are more than one diagonal where stones can be placed to form a five in a row, we employ the following labeling scheme for labeling the diagonals. We shall demonstrate this scheme on a $14\times14$ board for convenience, although
+Since there are more than one diagonal where stones can be placed to form a five in a row, we employ the following labeling scheme for labeling the diagonals. We shall demonstrate this scheme on a $15\times15$ board for convenience, although
 this scheme can be generalized to any $n\times n$ board. Consider some placement of some stone $s$ on a $15\times 15$ board at **$p=(x,y)$ and take the difference $x-y = k$**. We consider the stone $s$ as belonging to the $k+(board size-1)$ th left diagonal. For example,
 suppose player one placed a white stone on **$(3,8)$, then that stone belongs to the $9$ th left diagonal**, illustrated by the blue line in the following diagram.
 
