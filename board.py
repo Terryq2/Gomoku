@@ -3,6 +3,7 @@ import numpy
 from timer import Timer
 from utilities import CandidateManager, Point, Move, Candidate
 from stones import Stone
+from bitboard import BitBoard
 
 class InvalidMoveError(Exception):
     pass
@@ -10,39 +11,15 @@ class InvalidMoveError(Exception):
 class NoMoveToCancelError(Exception):
     pass
 
-class Move:
-    def __init__(self, x: int, y: int, stone: Stone, candidates_added: list[Candidate]):
-        self.point: Point =  Point(x, y)
-        self.player: Stone = stone
-        self.candidates_added: list[Candidate] = candidates_added
-        self.took_candidate_place_white: bool = False
-        self.took_candidate_place_black: bool = False
-
-    def __eq__(self, other):
-        if not isinstance(other, Move):
-            return False
-        return (self.point.x == other.point.x 
-                and self.point.y == other.point.y 
-                and self.player == other.player)
-
-    def __str__(self):
-        if self.player == 1:
-            return f"Point:({self.point.x},{self.point.y}), Player: White"
-        else:
-            return f"Point:({self.point.x},{self.point.y}), Player: Black"
-
 class Board:
     def __init__(self, board_size):
         self.candidates_manager: CandidateManager = CandidateManager(board_size)
-
         self.current_player: int = Stone.WHITE
         self.board_size: int = board_size
-        self.board: list[list[int]] = [[0 for _ in range(self.board_size)] for _ in range(self.board_size)]
-        self.zobrist_table: list[list[list[int]]] = self.generate_zobrist_table()
+        self.bit_board: BitBoard = BitBoard(board_size)
         self.move_stack: list[Move] = []
-        self.hash_for_board: int = 0
         self.transposition_table: dict[int, int] = {}
-
+        
         self.num_of_elements_in_rows: numpy.ndarray = numpy.zeros((self.board_size), dtype=int)
         self.num_of_elements_in_cols: numpy.ndarray = numpy.zeros((self.board_size), dtype=int)
         self.num_of_elements_in_left_diagonals: numpy.ndarray = numpy.zeros((2*self.board_size-1), dtype=int)
@@ -85,21 +62,7 @@ class Board:
 
     def place(self, x: int, y: int) -> bool:
         """Place a stone at (x,y) for the current player"""
-        # with Timer("Placement"):
-        if y < 0 or y >= self.board_size:
-            raise InvalidMoveError("Coordinates given are out of bounds.")
-        
-        if x < 0 or x >= self.board_size:
-            raise InvalidMoveError("Coordinates given are out of bounds.")
-
-        if self.board[y][x] != Stone.EMPTY:
-            return False
-
-        self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(self.board[y][x])] # hash out the original value
-        self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(self.current_player)] #hash in the new value
-        
-        #Set board to have the current player at x,y
-        self.board[y][x] = Stone.WHITE if self.current_player == Stone.WHITE else Stone.BLACK
+        self.bit_board.place(x, y, self.current_player)
         
         #If placed at x,y then obviously that place can no longer be a candidate
         self.candidates_manager.candidate_points_black[y][x] = False
@@ -112,9 +75,8 @@ class Board:
                 if not self.in_bounds(x + direction[0] * i, y+ direction[1] * i):
                     continue
                 
-                
                 candidate_point = Point(x + direction[0] * i, y + direction[1] * i)
-                if self.board[candidate_point.y][candidate_point.x] == Stone.EMPTY and not self.candidates_manager.is_a_candidate(candidate_point, self.current_player):
+                if self.bit_board.is_empty(x + direction[0] * i, y + direction[1] * i) and not self.candidates_manager.is_a_candidate(candidate_point, self.current_player):
                     candidates_added.append(candidate_point)
                     self.candidates_manager.add_candidate_for_player(candidate_point, self.current_player)
                 
@@ -156,11 +118,7 @@ class Board:
         x = last_move.point.x
         candidates_last_added =  last_move.candidates_added
         
-
-        self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(self.board[y][x])] # hash out original value
-        self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(Stone.EMPTY)] #hash in the new value
-
-        self.board[y][x] = Stone.EMPTY
+        self.bit_board.remove(x, y, player)
 
         for candidate in candidates_last_added:
             self.candidates_manager.remove_candidate_from_player(candidate, player)
@@ -189,7 +147,7 @@ class Board:
         if not self.move_stack:
             raise NoMoveToCancelError("No move to cancel.")
         
-        self.board =  [[0 for _ in range(self.board_size)] for _ in range(self.board_size)]
+        self.bit_board.reset()
         self.move_stack = []
         self.candidates_manager = CandidateManager(self.board_size)
         self.hash_for_board = 0
@@ -197,56 +155,26 @@ class Board:
 
         return True
 
-
-    def check_win(self, x: int, y: int, player: Stone) -> bool:
-        """Checks if a player has won"""
-        return any(
-            self.count_consecutive(x, y, dx, dy, player) == 5
-            for dx, dy in [(1, 0), (0, 1), (1, 1), (1, -1)]  # horizontal, vertical, diag1, diag2
-        )
-
-    def count_consecutive(self, x: int, y: int, dx: int, dy: int, player: Stone) -> int:
-        """Counts the number of consecutive stones vertically, horizontally and diagonally"""
-        count = 1
-        opponent = Stone(player * -1)
-
-        for i in range(1, 5):
-            if self.in_bounds(x + i * dx, y + i * dy):
-                if self.board[y + i * dy][x + i * dx] == player:
-                    count += 1
-                elif self.board[y + i * dy][x + i * dx] == opponent or self.board[y + i * dy][x + i * dx] == Stone.EMPTY:
-                    break
-
-        for i in range(1, 5):
-            if self.in_bounds(x - i * dx, y - i * dy):
-                if self.board[y - i * dy][x - i * dx] == player:
-                    count += 1
-                elif self.board[y - i * dy][x - i * dx] == opponent or self.board[y - i * dy][x - i * dx] == Stone.EMPTY:
-                    break
-
-        return count
-
     def in_bounds(self, x: int, y: int) -> bool:
         """Returns whether a point is in bounds"""
         return 0 <= x < self.board_size and 0 <= y < self.board_size
     
     def evaluate_board(self) -> int:
         """Gives a score of the current board"""
-        with Timer('Evaluation'):
-            if self.hash_for_board in self.transposition_table:
-                return self.transposition_table[self.hash_for_board]
-            
-            white_score = (self.evaluate_horizontals(Stone.WHITE) 
-                        + self.evaluate_verticals(Stone.WHITE) 
-                        + self.evaluate_diagonals(Stone.WHITE))
+        if self.bit_board.hash_for_board in self.transposition_table:
+            return self.transposition_table[self.bit_board.hash_for_board]
+        
+        white_score = (self.evaluate_horizontals(Stone.WHITE) 
+                    + self.evaluate_verticals(Stone.WHITE)
+                    + self.evaluate_diagonals(Stone.WHITE))
 
 
-            black_score = (self.evaluate_horizontals(Stone.BLACK)
-                        + self.evaluate_verticals(Stone.BLACK)
-                        + self.evaluate_diagonals(Stone.BLACK))
-     
-            self.transposition_table[self.hash_for_board] = white_score - black_score
-        return self.transposition_table[self.hash_for_board]
+        black_score = (self.evaluate_horizontals(Stone.BLACK)
+                    + self.evaluate_verticals(Stone.BLACK)
+                    + self.evaluate_diagonals(Stone.BLACK))
+    
+        self.transposition_table[self.bit_board.hash_for_board] = white_score - black_score
+        return self.transposition_table[self.bit_board.hash_for_board]
            
 
 
@@ -265,50 +193,34 @@ class Board:
     def evaluate_left_diagonals(self, player: Stone) -> int:
         """Evaluate the possible left diagonals"""
         score = 0
-        mid_line = self.board_size - 1
         for index in range(4, len(self.num_of_elements_in_left_diagonals)-4): 
             if self.num_of_elements_in_left_diagonals[index] != 0:
-                if index <= mid_line: 
-                    start_y = -index + self.board_size  - 1
-                    line = [self.board[start_y + i][i] for i in range(index + 1)]
-                    score += self.score_line(line, player)
+                alpha_line, beta_line = self.bit_board.get_left_diagonal(index, player)
+                score += self.score_line(alpha_line, beta_line)
                 
-                else: 
-                    start_x = index - self.board_size + 1
-                    line = [self.board[i][start_x + i] for i in range(2 * mid_line + 1- index)]
-                    score += self.score_line(line, player)   
-
-
         return score
     
     def evaluate_right_diagonals(self, player: Stone) -> int:
         """Evaluate the possible right diagonals"""
         score = 0
-        mid_line = self.board_size - 1
         for index in range(4, len(self.num_of_elements_in_right_diagonals)-4): 
             if self.num_of_elements_in_right_diagonals[index] != 0:
-                if index <= mid_line: 
-                    start_y = index
-                    line = [self.board[start_y-i][i] for i in range(index + 1)]
-                    score += self.score_line(line, player)
-                
-                else:
-                    start_x = self.board_size - index + 1
-                    line = [self.board[self.board_size-1-i][start_x + i] for i in range(2 * mid_line + 1- index)]
-                    score += self.score_line(line, player)
-            
+                alpha_line, beta_line = self.bit_board.get_right_diagonal(index, player)
+                score += self.score_line(alpha_line, beta_line)
+
         return score
     
     def evaluate_horizontals(self, player: Stone) -> int:
         """Evaluate the possible horizontals"""
         score = 0
-
-        # for y in range(self.board_size):
-        #     score += self.score_line(self.board[y], player)
-
+        opponent = player * -1
         for y in range(len(self.num_of_elements_in_rows)):
             if self.num_of_elements_in_rows[y] != 0:
-                score += self.score_line(self.board[y], player)
+
+                alpha_line = self.bit_board.get_row(y, player)
+                beta_line = self.bit_board.get_row(y, opponent)
+
+                score += self.score_line(alpha_line, beta_line)
 
         return score
 
@@ -317,8 +229,10 @@ class Board:
         score = 0
         for x in range(len(self.num_of_elements_in_cols)):
             if self.num_of_elements_in_cols[x] != 0:
-                col = [self.board[y][x] for y in range(self.board_size)]
-                score += self.score_line(col, player)
+
+                alpha, beta = self.bit_board.get_column(x, player)
+
+                score += self.score_line(alpha, beta)
 
         return score
     
@@ -328,32 +242,66 @@ class Board:
         score += self.evaluate_right_diagonals(player)
         return score
     
-    def score_line(self, line: list[Stone], player: Stone) -> float:
+    def score_line(self, alpha: int, beta: int) -> float:
         """Scores a line"""
-        pattern_score = {
-            "11111": float('inf'),       # five in a row (win)
-            "011110": 10000,       # open four
-            "01110": 1000,        # open three
-            "01111X": 5000,
-            "X11110": 5000,
-            "0111X": 300,
-            "X1110": 300,
-            "0110": 200,         # open two
-            "X110": 50,
-            "011X": 50
-        }
-        
-        line_str = ''.join(self.stone_to_char(line, player))
+
+        #check win
+        possible_iterations = self.board_size - 0b11111.bit_length()
+        for i in range(possible_iterations):
+            mask = 0b11111 << i
+            if mask & alpha == mask:
+                return 100000000
+            
+        patterns = [
+            (0b011110, 100000),
+            (0b01110, 10000),
+            (0b0110, 1000)
+        ]
 
         score = 0
-        
-        for pattern, value in pattern_score.items():
-            count = line_str.count(pattern)
-            if pattern == '11111' and count:
-                return float('inf')
-            if count:
-                score += count * value
+        for pattern, value in patterns:
+            possible_iterations = self.board_size - pattern.bit_length() + 1
+            #Two edge cases
+            mask = pattern >> 1
+            left_bit = (0b1 << mask.bit_length())
+            left_blocked = beta & left_bit
+            if mask & alpha == mask:
+                if not left_blocked:
+                    score += value * 0.5
+                else:
+                    score += value * 0.1
+            
+            mask = pattern << (possible_iterations - 1)
+            right_bit = (possible_iterations - 1)
+            right_blocked = beta & right_bit
+            if mask & alpha == mask:
+                if not right_blocked:
+                    score += value * 0.5
+                else:
+                    score += value * 0.1
+            
+            length = pattern.bit_length()
+            for i in range(possible_iterations):
+                mask = pattern << i
+                if mask & alpha == mask:
+                    left_bit = (0b1 << i + length)
+                    right_bit = (0b1 << i)
+                    check = beta & (left_bit | right_bit)
+            
+                    
+                    if check == (left_bit | right_bit):
+                        score += value * 0.1
+                        continue
+
+                    if check == left_bit or check == right_bit:
+                        score += value * 0.5
+                        continue
+
+                    if check == 0b0:
+                        score += value
+                        continue
         return score
+
 
 if __name__ == '__main__':
     print("Hello")

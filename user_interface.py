@@ -127,7 +127,7 @@ class UI:
         
         self.board.place(closest_neighbor.x, closest_neighbor.y)
         self.draw_stones(self.canvas, self.board.move_stack[-1])
-        if self.board.check_win(closest_neighbor.x, closest_neighbor.y, self.board.move_stack[-1].player):
+        if self.board.bit_board.check_win(closest_neighbor.x, closest_neighbor.y, self.board.move_stack[-1].player):
             winner = "Black" if self.board.move_stack[-1].player == Stone.BLACK else "White"
             answer = messagebox.askyesno("Game Over", f"{winner} Won！\nDo you want to play again?")
             self.canvas.unbind("<Button-1>")
@@ -140,9 +140,9 @@ class UI:
                 self.root.destroy()
             return
         
-        if self.bot != None:
-            self.canvas.unbind("<Button-1>")
-            threading.Thread(target=self.trigger_ai_turn, daemon=True).start()
+        # if self.bot != None:
+        #     self.canvas.unbind("<Button-1>")
+        #     threading.Thread(target=self.trigger_ai_turn, daemon=True).start()
             
         
     def redraw_board(self, canvas: tk.Canvas) -> None:
@@ -208,18 +208,14 @@ class UI:
         pr.disable()
         s = io.StringIO()
         ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
-        ps.print_stats(20)  # 显示前 20 个函数
+        ps.print_stats(10)  # 显示前 20 个函数
         print(s.getvalue())
-
-        elapsed = time.time() - start
-        if elapsed < 1.0:
-            time.sleep(1.0 - elapsed)
 
         def place_ai_move():
             self.board.place(ai_move.point.x, ai_move.point.y)
             self.draw_stones(self.canvas, self.board.move_stack[-1])
 
-            if self.board.check_win(ai_move.point.x, ai_move.point.y, self.board.move_stack[-1].player):
+            if self.board.bit_board.check_win(ai_move.point.x, ai_move.point.y, self.board.move_stack[-1].player):
                 winner = "Black" if self.board.move_stack[-1].player == Stone.BLACK else "White"
                 answer = messagebox.askyesno("Game Over", f"{winner} Won!\nDo you want to play again?")
                 self.canvas.unbind("<Button-1>")
@@ -234,16 +230,29 @@ class UI:
                 self.canvas.bind("<Button-1>", self.on_click)
         self.root.after(0, place_ai_move)
 
-    def on_key_m(self):
-        with Timer('Minimax'):
-            print(self.bot.minimax.run(max_depth=3, board=self.board))
+    def on_key_m(self, _):
+        start = time.time()
+        pr = cProfile.Profile()
+        pr.enable()
 
-    def on_key_l(self):
+        
+
+        (score, ai_move) = self.bot.minimax.run(max_depth=3, board=self.board)
+
+
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+        ps.print_stats(25)  # 显示前 20 个函数
+        print(s.getvalue())
+
+    def on_key_l(self, _):
         with Timer('Cancel'):
             self.board.cancel()
             self.redraw_board(self.canvas)
 
-    def on_key_p(self):
+    def on_key_p(self, _):
+        print(self.board.evaluate_board())
         self.draw_candidates(self.canvas)
 
     

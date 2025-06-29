@@ -8,6 +8,7 @@ class Candidate:
 
     def __str__(self):
         return f'({self.point.x}, {self.point.y})'
+    
 
 class Frame:
     def __init__(self,
