@@ -201,8 +201,8 @@ class UI:
         pr.enable()
 
         
-
-        (score, ai_move) = self.bot.minimax.run(max_depth=3, board=self.board)
+        for i in range(1, 4):
+            (score, ai_move) = self.bot.minimax.run(max_depth=i, board=self.board)
 
 
         pr.disable()
@@ -210,10 +210,6 @@ class UI:
         ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
         ps.print_stats(20)  # 显示前 20 个函数
         print(s.getvalue())
-
-        elapsed = time.time() - start
-        if elapsed < 1.0:
-            time.sleep(1.0 - elapsed)
 
         def place_ai_move():
             self.board.place(ai_move.point.x, ai_move.point.y)
@@ -234,16 +230,16 @@ class UI:
                 self.canvas.bind("<Button-1>", self.on_click)
         self.root.after(0, place_ai_move)
 
-    def on_key_m(self):
+    def on_key_m(self, event):
         with Timer('Minimax'):
             print(self.bot.minimax.run(max_depth=3, board=self.board))
 
-    def on_key_l(self):
+    def on_key_l(self, event):
         with Timer('Cancel'):
             self.board.cancel()
             self.redraw_board(self.canvas)
 
-    def on_key_p(self):
+    def on_key_p(self, event):
         self.draw_candidates(self.canvas)
 
     

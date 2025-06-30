@@ -59,6 +59,43 @@ class Board:
             (1, 1) #right down
         ]
 
+        self.pattern_score = {
+            
+            (1, 1, 1, 1, 1): 1000000, 
+
+          
+            (0, 1, 1, 1, 1, 0): 100000,       
+            
+            
+            (1, 1, 1, 1, 0): 10000,               
+            (0, 1, 1, 1, 1): 10000,
+            (1, 1, 1, 0, 1): 10000,
+            (1, 1, 0, 1, 1): 10000,
+            (1, 0, 1, 1, 1): 10000,
+            (0, 1, 1, 1, -1): 10000,
+            (-1, 1, 1, 1, 0): 10000,
+
+            
+            (0, 1, 1, 1, 0): 5000,               
+            (0, 1, 0, 1, 1, 0): 5000,            
+
+           
+            (1, 1, 1, 0): 1000,
+            (0, 1, 1, 1): 1000,
+            (1, 1, 0, 1, 0): 1000,
+            (0, 1, 0, 1, 1): 1000,
+            (0, 1, 1, 0, 1): 1000,
+
+            
+            (0, 1, 1, 0): 500,
+            (0, 1, 0, 1, 0): 500,
+     
+            (1, 1, 0): 100,
+            (0, 1, 1): 100,
+            (1, 0, 1): 100,
+        }
+
+
     def get_stone_index_for_hashing(self, stone: Stone):
         """Returns the position for Zobrist hashing"""
         if stone == Stone.EMPTY:
@@ -328,31 +365,19 @@ class Board:
         score += self.evaluate_right_diagonals(player)
         return score
     
+    
+    
     def score_line(self, line: list[Stone], player: Stone) -> float:
-        """Scores a line"""
-        pattern_score = {
-            "11111": float('inf'),       # five in a row (win)
-            "011110": 10000,       # open four
-            "01110": 1000,        # open three
-            "01111X": 5000,
-            "X11110": 5000,
-            "0111X": 300,
-            "X1110": 300,
-            "0110": 200,         # open two
-            "X110": 50,
-            "011X": 50
-        }
-        
-        line_str = ''.join(self.stone_to_char(line, player))
-
+        stones = [(1 if s == player else -1 if s != Stone.EMPTY else 0) for s in line]
         score = 0
-        
-        for pattern, value in pattern_score.items():
-            count = line_str.count(pattern)
-            if pattern == '11111' and count:
-                return float('inf')
-            if count:
-                score += count * value
+        max_len = max(len(pat) for pat in self.pattern_score)
+
+        for window_size in range(3, max_len + 1):
+            for i in range(len(stones) - window_size + 1):
+                window = tuple(stones[i:i + window_size])
+                if window in self.pattern_score:
+                    val = self.pattern_score[window]
+                    score += val
         return score
 
 if __name__ == '__main__':
