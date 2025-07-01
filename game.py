@@ -10,4 +10,4 @@ class Gomoku:
         
     
 if __name__ == "__main__":
-    game = Gomoku(15)
+    game = Gomoku(19)
