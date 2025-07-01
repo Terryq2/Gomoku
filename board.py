@@ -34,7 +34,13 @@ class Move:
 class Board:
     def __init__(self, board_size):
         self.candidates_manager: CandidateManager = CandidateManager(board_size)
+        
+        self.min_x = float('inf')
+        self.max_x = float('-inf')
 
+        self.min_y = float('inf')
+        self.max_y = float('-inf')
+        
         self.current_player: int = Stone.WHITE
         self.board_size: int = board_size
         self.board: list[list[int]] = [[0 for _ in range(self.board_size)] for _ in range(self.board_size)]
@@ -120,23 +126,27 @@ class Board:
         self.hash_for_board = hashed_value
 
 
+    def update_box(self, x: int, y: int):
+        if x < self.min_x:
+            self.min_x = x
+        if x > self.max_x:
+            self.max_x = x
+
+        if y < self.min_y:
+            self.min_y = y
+        if y > self.max_y:
+            self.max_y = y
+
+
     def place(self, x: int, y: int) -> bool:
         """Place a stone at (x,y) for the current player"""
-        # with Timer("Placement"):
-        if y < 0 or y >= self.board_size:
-            raise InvalidMoveError("Coordinates given are out of bounds.")
-        
-        if x < 0 or x >= self.board_size:
-            raise InvalidMoveError("Coordinates given are out of bounds.")
-
-        if self.board[y][x] != Stone.EMPTY:
-            return False
-
         self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(self.board[y][x])] # hash out the original value
         self.hash_for_board ^= self.zobrist_table[y][x][self.get_stone_index_for_hashing(self.current_player)] #hash in the new value
         
         #Set board to have the current player at x,y
         self.board[y][x] = Stone.WHITE if self.current_player == Stone.WHITE else Stone.BLACK
+
+        self.update_box(x, y)
         
         #If placed at x,y then obviously that place can no longer be a candidate
         self.candidates_manager.candidate_points_black[y][x] = False
@@ -286,25 +296,12 @@ class Board:
         return self.transposition_table[self.hash_for_board]
            
 
-
-    def stone_to_char(self, stones: list[Stone], player: Stone) -> list[str]:
-        """Returns a string representation of a line of stones based on the player"""
-        output = []
-        for stone in stones:
-            if stone == player:
-                output.append('1')
-            elif stone == Stone.EMPTY:
-                output.append('0')
-            else:
-                output.append('X')
-        return output
-
     def evaluate_left_diagonals(self, player: Stone) -> int:
         """Evaluate the possible left diagonals"""
         score = 0
         mid_line = self.board_size - 1
         for index in range(4, len(self.num_of_elements_in_left_diagonals)-4): 
-            if self.num_of_elements_in_left_diagonals[index] != 0:
+            if self.num_of_elements_in_left_diagonals[index] >= 2:
                 if index <= mid_line: 
                     start_y = -index + self.board_size  - 1
                     line = [self.board[start_y + i][i] for i in range(index + 1)]
@@ -323,7 +320,7 @@ class Board:
         score = 0
         mid_line = self.board_size - 1
         for index in range(4, len(self.num_of_elements_in_right_diagonals)-4): 
-            if self.num_of_elements_in_right_diagonals[index] != 0:
+            if self.num_of_elements_in_right_diagonals[index] >= 2:
                 if index <= mid_line: 
                     start_y = index
                     line = [self.board[start_y-i][i] for i in range(index + 1)]
@@ -343,8 +340,8 @@ class Board:
         # for y in range(self.board_size):
         #     score += self.score_line(self.board[y], player)
 
-        for y in range(len(self.num_of_elements_in_rows)):
-            if self.num_of_elements_in_rows[y] != 0:
+        for y in range(self.min_y, self.max_y + 1):
+            if self.num_of_elements_in_rows[y] >= 2:
                 score += self.score_line(self.board[y], player)
 
         return score
@@ -352,8 +349,8 @@ class Board:
     def evaluate_verticals(self, player: Stone) -> int:
         """Evaluate the possible verticals"""
         score = 0
-        for x in range(len(self.num_of_elements_in_cols)):
-            if self.num_of_elements_in_cols[x] != 0:
+        for x in range(self.min_x, self.max_x + 1):
+            if self.num_of_elements_in_cols[x] >= 2:
                 col = [self.board[y][x] for y in range(self.board_size)]
                 score += self.score_line(col, player)
 

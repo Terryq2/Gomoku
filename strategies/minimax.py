@@ -36,7 +36,6 @@ class Minimax:
                 current_frame = call_stack[-1]
                 if current_frame.beta <= current_frame.alpha:
                     self.add_killer_move(current_frame.depth, current_frame.candidates[current_frame.candidate_index - 1])
-                    current_frame.candidate_index = len(current_frame.candidates)
 
                 continue
 

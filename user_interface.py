@@ -201,7 +201,7 @@ class UI:
         pr.enable()
 
         
-        for i in range(1, 4):
+        for i in range(1, 3):
             (score, ai_move) = self.bot.minimax.run(max_depth=i, board=self.board)
 
 
