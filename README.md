@@ -3,7 +3,7 @@
 ## Board
 For an $n\times n$ board we index the top left corner as $(0,0)$. A larger $x$ coordinate brings us more right relative to the origin. A larger $y$ coordinate brings us more down relative to the origin. This scheme is illustrated on the following $15\times15$ board.
 
-<img src="/images/board.png" width=50% height=50%>
+<img src="/images/board.png">
 
 
 ## Checking Win Conditions
@@ -61,7 +61,7 @@ self.num_of_elements_in_cols: numpy.ndarray = numpy.zeros((self.board_size), dty
 When making a static evaluation of the board we only score lines if they are occupied by at least one stone. In the following picture, for example, we would only evaluate the column at $x=8$ since it is the only column with greater than or equal to $2$ elements. We would not evaluate any rows
 since no rows contain more than or equalt to $2$ elements. 
 
-<img src="/images/Static_evluation.png" width=50% height=50%>
+<img src="/images/Static_evluation.png">
 
 Furthermore, we record the minimum and maximum values of the $x$ and $y$ coordinates when placing stones on the board and only check for those columns and rows for values inside those constraints. These values are update for each placement
 ```python
@@ -78,7 +78,7 @@ def update_box(self, x: int, y: int):
 ```
 This is such that when evaluating columns or rows we do not have to go through spaces where there is no stones. In the following example, $x_{\text{min}} = y_{\text{min}} = 5$ with $x_{\text{max}} = 10$ and $y_{\text{max}} = 12$ and so it suffices to score the horizontal and vertical lines within those values.
 
-<img src="/images/bounding_box.png" width=50% height=50%>
+<img src="/images/bounding_box.png">
 In practice, to accomodate our evaluation function, which relies on window matching, we cannot put the tightest bound on the number of operations. We must add some buffer to our window such that the scoring function works properly
 
 ```python
@@ -109,20 +109,20 @@ def evaluate_verticals(self, player: Stone, lower: int, upper: int) -> int:
 #### A characterization of diagonals
 For convenience, suppose $d$ is a diagonal with end points $p_1 = (x_1, y_1)$ and $p_2 = (x_2, y_2)$ we call a diagonal a left diagonal if $x_1 < x_2$ and $y_1< y_2$ and a diagonal a right diagonal if $x_1 < x_2$ and $y_2< y_1$. This is best illustrated by the following diagram. The blue line is a left diagonal and the red line is a right diagonal.
 
-<img src="/images/diagonals.png" width=56% height=56%>
+<img src="/images/diagonals.png">
 
 #### Left diagonals
 Since there are more than one diagonal where stones can be placed to form a five in a row, we employ the following labeling scheme for labeling the diagonals. We shall demonstrate this scheme on a $15\times15$ board for convenience, although
 this scheme can be generalized to any $n\times n$ board. Consider some placement of some stone $s$ on a $15\times 15$ board at **$p=(x,y)$ and take the difference $x-y = k$**. We consider the stone $s$ as belonging to the $k+(board size-1)$ th left diagonal. For example,
 suppose player one placed a white stone on **$(3,8)$, then that stone belongs to the $9$ th left diagonal**, illustrated by the blue line in the following diagram.
 
-<img src="/images/scheme_left_diagonal.png" width=50% height=50%>
+<img src="/images/scheme_left_diagonal.png">
 
 #### Right diagonals
 Consider another of some stone $s$ on a $15\times 15$ board at **$p=(x,y)$ and take the sum $x+y = k$**. We consider the stone $s$ as belonging to the $k$ th left diagonal. For example,
 suppose player one placed a white stone on **$(7,9)$, then that stone belongs to the $16$ th right diagonal**, illustrated by the red line in the following diagram.
 
-<img src="/images/scheme_right_diagonal.png" width=50% height=50%>
+<img src="/images/scheme_right_diagonal.png">
 
 #### In Practice
 We track left diagonals and right diagonals during placement
