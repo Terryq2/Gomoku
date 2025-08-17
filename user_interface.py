@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
 import math
-from ctypes import windll
 from board import Point
 from utilities import Candidate
 from board import Board
@@ -32,9 +31,8 @@ class UI:
         self.stone_radius = 20
 
         self.root = tk.Tk()
-        windll.shcore.SetProcessDpiAwareness(1)
         self.root.title("Gomoku")
-        self.root.geometry("1300x1300") 
+        self.root.geometry("900x1300") 
         self.canvas = tk.Canvas(self.root, width=(self.board_size+1)*self.cell_size, height=(self.board_size+1)*self.cell_size, bg="#F5DEB3")
         self.canvas.pack(fill=tk.BOTH, expand=True) 
 
